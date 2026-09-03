@@ -68,19 +68,7 @@ def create_object(obj: ObjectProfile):
     }
 
 
-@app.get("/objects")
-def get_objects():
-    objects = []
 
-    docs = db.collection("objects").stream()
-
-    for doc in docs:
-        objects.append(doc.to_dict())
-
-    return {
-        "status": "success",
-        "objects": objects
-    }
 
 @app.post("/objects/generate")
 def generate_object(object_type: str):
@@ -220,3 +208,30 @@ def pass_object(object_id: str):
     except Exception as e:
         print("FIRESTORE ERROR:", repr(e))
         raise
+
+
+@app.get("/objects")
+def get_objects():
+
+    try:
+        docs = db.collection("objects").stream()
+
+        objects = []
+
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            objects.append(data)
+
+        return {
+            "status": "success",
+            "objects": objects
+        }
+
+    except Exception as e:
+        print("GET OBJECTS ERROR:", e)
+
+        return {
+            "status": "error",
+            "message": str(e)
+        }    
