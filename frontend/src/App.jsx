@@ -1,122 +1,127 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+﻿import { useState } from "react";
+import axios from "axios";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [objectType, setObjectType] = useState("");
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [decision, setDecision] = useState("");
+
+  const generateProfile = async () => {
+    if (!objectType.trim()) {
+      setError("Please enter an object.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setProfile(null);
+    setDecision("");
+
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/objects/generate",
+        null,
+        {
+          params: {
+            object_type: objectType,
+          },
+        }
+      );
+
+      const generatedProfile = JSON.parse(response.data.profile);
+      setProfile(generatedProfile);
+    } catch (err) {
+      console.error(err);
+      setError("Could not generate profile. Check your backend.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLike = () => {
+    setDecision("liked");
+  };
+
+  const handlePass = () => {
+    setDecision("passed");
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+    <div className="app">
+      <h1>saadhanaPorutham ??</h1>
+
+      <p>Where everyday objects find their perfect match.</p>
+
+      <div className="generator">
+        <input
+          type="text"
+          placeholder="Enter an object..."
+          value={objectType}
+          onChange={(e) => setObjectType(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              generateProfile();
+            }
+          }}
+        />
+
+        <button onClick={generateProfile} disabled={loading}>
+          {loading ? "Creating profile..." : "Create Profile ?"}
         </button>
-      </section>
+      </div>
 
-      <div className="ticks"></div>
+      {error && <p className="error">{error}</p>}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {profile && (
+        <div className="profile">
+          <div className="profile-header">
+            <span className="badge">AI GENERATED</span>
+          </div>
+
+          <h2>{profile.name}</h2>
+
+          <p className="bio">"{profile.bio}"</p>
+
+          <div className="profile-details">
+            <p><strong>Type:</strong> {profile.type}</p>
+            <p><strong>Personality:</strong> {profile.personality}</p>
+            <p><strong>Attachment Style:</strong> {profile.attachment_style}</p>
+            <p><strong>Love Language:</strong> {profile.love_language}</p>
+            <p><strong>Turn Ons:</strong> {profile.turn_ons}</p>
+            <p><strong>Turn Offs:</strong> {profile.turn_offs}</p>
+            <p><strong>?? Green Flags:</strong> {profile.green_flags}</p>
+            <p><strong>?? Red Flags:</strong> {profile.red_flags}</p>
+          </div>
+
+          <div className="actions">
+            <button className="pass-btn" onClick={handlePass}>
+              ?
+            </button>
+
+            <button className="like-btn" onClick={handleLike}>
+              ??
+            </button>
+          </div>
+
+          {decision === "liked" && (
+            <div className="decision liked">
+              ?? You liked this object!
+            </div>
+          )}
+
+          {decision === "passed" && (
+            <div className="decision passed">
+              ? Maybe next time...
+            </div>
+          )}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
+
