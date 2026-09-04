@@ -646,3 +646,86 @@ button {
     padding: 25px 18px;
   }
 }
+
+.jathakam-pair {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  margin: 15px 0 5px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #4a1717;
+}
+
+.jathakam-pair span:nth-child(2) {
+  color: #9a8177;
+  font-size: 22px;
+}
+
+.score-label {
+  color: #776861;
+  margin-top: -5px;
+}
+
+.porutham-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-top: 30px;
+  text-align: left;
+}
+
+.porutham-item {
+  position: relative;
+  background: white;
+  border: 1px solid #dfd2ca;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.porutham-item strong {
+  display: block;
+  color: #5b2020;
+  margin-bottom: 8px;
+}
+
+.porutham-item span {
+  position: absolute;
+  top: 17px;
+  right: 17px;
+  font-weight: 800;
+  color: #6d2424;
+}
+
+.porutham-item p {
+  margin: 0;
+  padding-right: 45px;
+  color: #5c514c;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.jathakam-verdict {
+  margin-top: 25px;
+  padding: 25px;
+  border-radius: 15px;
+  background: #f1e8e2;
+}
+
+.jathakam-verdict h3 {
+  margin: 0 0 10px;
+  color: #4a1717;
+}
+
+.jathakam-verdict p {
+  margin: 0;
+  color: #5b504b;
+  line-height: 1.5;
+}
+
+@media (max-width: 650px) {
+  .porutham-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -2,7 +2,8 @@
 import axios from "axios";
 import "./App.css";
 
-const API = "http://127.0.0.1:8000";
+// Railway backend
+const API = "https://unique-curiosity-production-3298.up.railway.app";
 
 function App() {
   const [objectType, setObjectType] = useState("");
@@ -19,7 +20,7 @@ function App() {
   const [error, setError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
 
-    const [compatibility, setCompatibility] = useState(null);
+  const [compatibility, setCompatibility] = useState(null);
   const [compatibilityLoading, setCompatibilityLoading] = useState(false);
 
   // --------------------------------
@@ -28,6 +29,7 @@ function App() {
 
   const loadObjects = async () => {
     setLoadingObjects(true);
+    setError("");
 
     try {
       const response = await axios.get(`${API}/objects`);
@@ -81,9 +83,10 @@ function App() {
         throw new Error(response.data.message);
       }
 
-      const generatedProfile = JSON.parse(
-        response.data.profile
-      );
+      const generatedProfile =
+        typeof response.data.profile === "string"
+          ? JSON.parse(response.data.profile)
+          : response.data.profile;
 
       setProfile(generatedProfile);
       setObjectId(response.data.object_id);
@@ -92,11 +95,12 @@ function App() {
       await loadObjects();
 
       setObjectType("");
-
     } catch (err) {
       console.error("Generate error:", err);
+
       setError(
-        "Could not generate profile. Check your backend."
+        err.response?.data?.detail ||
+          "Could not generate profile. Check your backend."
       );
     } finally {
       setLoading(false);
@@ -108,6 +112,8 @@ function App() {
   // --------------------------------
 
   const handleLike = async (id) => {
+    if (!id) return;
+
     try {
       await axios.post(`${API}/objects/${id}/like`);
 
@@ -123,6 +129,8 @@ function App() {
   // --------------------------------
 
   const handlePass = async (id) => {
+    if (!id) return;
+
     try {
       await axios.post(`${API}/objects/${id}/pass`);
 
@@ -170,57 +178,50 @@ function App() {
   // Compatibility
   // --------------------------------
 
-  
   const checkCompatibility = async () => {
-  if (selected.length !== 2) {
-    setActionMessage(
-      "Please select exactly two objects."
-    );
+    if (selected.length !== 2) {
+      setActionMessage(
+        "Please select exactly two objects."
+      );
 
-    return;
-  }
-
-  setCompatibilityLoading(true);
-  setCompatibility(null);
-  setActionMessage("");
-
-  try {
-    const response = await axios.post(
-      `${API}/objects/compatibility`,
-      null,
-      {
-        params: {
-          object1_id: selected[0].id,
-          object2_id: selected[1].id,
-        },
-      }
-    );
-
-    if (response.data.status !== "success") {
-      throw new Error(response.data.message);
+      return;
     }
 
-    setCompatibility(
-      response.data.compatibility
-    );
+    setCompatibilityLoading(true);
+    setCompatibility(null);
+    setActionMessage("");
 
-  } catch (err) {
+    try {
+      const response = await axios.post(
+        `${API}/objects/compatibility`,
+        null,
+        {
+          params: {
+            object1_id: selected[0].id,
+            object2_id: selected[1].id,
+          },
+        }
+      );
 
-    console.error(
-      "Compatibility error:",
-      err
-    );
+      if (response.data.status !== "success") {
+        throw new Error(response.data.message);
+      }
 
-    setActionMessage(
-      "Could not calculate compatibility."
-    );
+      setCompatibility(response.data.compatibility);
+    } catch (err) {
+      console.error(
+        "Compatibility error:",
+        err
+      );
 
-  } finally {
-
-    setCompatibilityLoading(false);
-
-  }
-};
+      setActionMessage(
+        err.response?.data?.detail ||
+          "Could not calculate compatibility."
+      );
+    } finally {
+      setCompatibilityLoading(false);
+    }
+  };
 
   return (
     <div className="app">
@@ -232,7 +233,7 @@ function App() {
       <header className="header">
 
         <h1>
-          
+          Saadhana Porutham
         </h1>
 
         <p>
@@ -315,90 +316,43 @@ function App() {
             </p>
 
             <div className="profile-detail">
-
               <strong>Bio</strong>
-
-              <p>
-                {profile.bio}
-              </p>
-
+              <p>{profile.bio}</p>
             </div>
 
-
             <div className="profile-detail">
-
               <strong>Personality</strong>
-
-              <p>
-                {profile.personality}
-              </p>
-
+              <p>{profile.personality}</p>
             </div>
 
-
             <div className="profile-detail">
-
               <strong>Attachment Style</strong>
-
-              <p>
-                {profile.attachment_style}
-              </p>
-
+              <p>{profile.attachment_style}</p>
             </div>
 
-
             <div className="profile-detail">
-
               <strong>Love Language</strong>
-
-              <p>
-                {profile.love_language}
-              </p>
-
+              <p>{profile.love_language}</p>
             </div>
 
-
             <div className="profile-detail">
-
               <strong>Turn Ons</strong>
-
-              <p>
-                {profile.turn_ons}
-              </p>
-
+              <p>{profile.turn_ons}</p>
             </div>
-
 
             <div className="profile-detail">
-
               <strong>Turn Offs</strong>
-
-              <p>
-                {profile.turn_offs}
-              </p>
-
+              <p>{profile.turn_offs}</p>
             </div>
-
 
             <div className="profile-detail green">
-
               <strong>Green Flags</strong>
-
-              <p>
-                {profile.green_flags}
-              </p>
-
+              <p>{profile.green_flags}</p>
             </div>
 
-
             <div className="profile-detail red">
-
               <strong>Red Flags</strong>
-
-              <p>
-                {profile.red_flags}
-              </p>
-
+              <p>{profile.red_flags}</p>
             </div>
 
 
@@ -454,9 +408,7 @@ function App() {
           </div>
 
           <div className="selection-count">
-
             {selected.length}/2 selected
-
           </div>
 
         </div>
@@ -465,11 +417,9 @@ function App() {
         {/* Loading */}
 
         {loadingObjects && (
-
           <p className="loading">
             Loading objects...
           </p>
-
         )}
 
 
@@ -642,12 +592,12 @@ function App() {
       <section className="compatibility">
 
         <h2>
-          Check Compatibility
+          Jathakam Porutham
         </h2>
 
         <p>
-          Select exactly two objects and see how well
-          they would get along.
+          Select exactly two objects and discover their
+          fictional Jathakam match.
         </p>
 
 
@@ -656,13 +606,10 @@ function App() {
         <div className="selected-profiles">
 
           {selected.length === 0 && (
-
             <p className="selection-hint">
               Select two profiles from Discover.
             </p>
-
           )}
-
 
           {selected.map((object) => (
 
@@ -688,76 +635,181 @@ function App() {
 
         {/* Compatibility button */}
 
-      <button
-  className="compatibility-button"
-  disabled={
-    selected.length !== 2 ||
-    compatibilityLoading
-  }
-  onClick={checkCompatibility}
->
-  {compatibilityLoading
-    ? "Analyzing..."
-    : "Check Compatibility"}
-</button>
+        <button
+          className="compatibility-button"
+          disabled={
+            selected.length !== 2 ||
+            compatibilityLoading
+          }
+          onClick={checkCompatibility}
+        >
+          {compatibilityLoading
+            ? "Reading Jathakam..."
+            : "Check Jathakam Porutham"}
+        </button>
 
-{compatibility && (
-  <div className="compatibility-result">
 
-    <h2>
-      Compatibility Result
-    </h2>
+        {/* Compatibility result */}
 
-    <div className="score">
-      {compatibility.compatibility_score}%
-    </div>
+        {compatibility && (
 
-    <h3>
-      {compatibility.verdict}
-    </h3>
+          <div className="compatibility-result">
 
-    <div className="compatibility-detail">
+            <h2>
+              Jathakam Porutham
+            </h2>
 
-      <strong>Chemistry</strong>
+            <div className="jathakam-pair">
 
-      <p>
-        {compatibility.chemistry}
-      </p>
+              <span>
+                {compatibility.object1?.name ||
+                  "Object 1"}
+              </span>
 
-    </div>
+              <span>+</span>
 
-    <div className="compatibility-detail">
+              <span>
+                {compatibility.object2?.name ||
+                  "Object 2"}
+              </span>
 
-      <strong>Why They Work</strong>
+            </div>
 
-      <p>
-        {compatibility.strengths}
-      </p>
 
-    </div>
+            <div className="score">
+              {compatibility.total_score ?? 0}/100
+            </div>
 
-    <div className="compatibility-detail">
+            <p className="score-label">
+              Porutham Score
+            </p>
 
-      <strong>Potential Problems</strong>
 
-      <p>
-        {compatibility.conflicts}
-      </p>
+            {/* 10 Poruthams */}
 
-    </div>
+            <div className="porutham-grid">
 
-    <div className="compatibility-detail">
+              <div className="porutham-item">
+                <strong>Dina Porutham</strong>
+                <span>
+                  {compatibility.poruthams?.dina?.score ?? 0}/10
+                </span>
+                <p>
+                  {compatibility.poruthams?.dina?.explanation}
+                </p>
+              </div>
 
-      <strong>Perfect Date</strong>
+              <div className="porutham-item">
+                <strong>Gana Porutham</strong>
+                <span>
+                  {compatibility.poruthams?.gana?.score ?? 0}/10
+                </span>
+                <p>
+                  {compatibility.poruthams?.gana?.explanation}
+                </p>
+              </div>
 
-      <p>
-        {compatibility.perfect_date}
-      </p>
+              <div className="porutham-item">
+                <strong>Mahendra Porutham</strong>
+                <span>
+                  {compatibility.poruthams?.mahendra?.score ?? 0}/10
+                </span>
+                <p>
+                  {compatibility.poruthams?.mahendra?.explanation}
+                </p>
+              </div>
 
-    </div>
+              <div className="porutham-item">
+                <strong>Sthree Deergha Porutham</strong>
+                <span>
+                  {compatibility.poruthams?.sthree_deergha?.score ?? 0}/10
+                </span>
+                <p>
+                  {compatibility.poruthams?.sthree_deergha?.explanation}
+                </p>
+              </div>
 
-  </div>
-)}
+              <div className="porutham-item">
+                <strong>Yoni Porutham</strong>
+                <span>
+                  {compatibility.poruthams?.yoni?.score ?? 0}/10
+                </span>
+                <p>
+                  {compatibility.poruthams?.yoni?.explanation}
+                </p>
+              </div>
+
+              <div className="porutham-item">
+                <strong>Rashi Porutham</strong>
+                <span>
+                  {compatibility.poruthams?.rashi?.score ?? 0}/10
+                </span>
+                <p>
+                  {compatibility.poruthams?.rashi?.explanation}
+                </p>
+              </div>
+
+              <div className="porutham-item">
+                <strong>Rasyadhipathi Porutham</strong>
+                <span>
+                  {compatibility.poruthams?.rasyadhipathi?.score ?? 0}/10
+                </span>
+                <p>
+                  {compatibility.poruthams?.rasyadhipathi?.explanation}
+                </p>
+              </div>
+
+              <div className="porutham-item">
+                <strong>Vasya Porutham</strong>
+                <span>
+                  {compatibility.poruthams?.vasya?.score ?? 0}/10
+                </span>
+                <p>
+                  {compatibility.poruthams?.vasya?.explanation}
+                </p>
+              </div>
+
+              <div className="porutham-item">
+                <strong>Rajju Porutham</strong>
+                <span>
+                  {compatibility.poruthams?.rajju?.score ?? 0}/10
+                </span>
+                <p>
+                  {compatibility.poruthams?.rajju?.explanation}
+                </p>
+              </div>
+
+              <div className="porutham-item">
+                <strong>Vedha Porutham</strong>
+                <span>
+                  {compatibility.poruthams?.vedha?.score ?? 0}/10
+                </span>
+                <p>
+                  {compatibility.poruthams?.vedha?.explanation}
+                </p>
+              </div>
+
+            </div>
+
+
+            {/* Final verdict */}
+
+            <div className="jathakam-verdict">
+
+              <h3>
+                {compatibility.verdict}
+              </h3>
+
+              <p>
+                {compatibility.marriage_prediction}
+              </p>
+
+            </div>
+
+          </div>
+
+        )}
+
       </section>
 
 
@@ -766,11 +818,9 @@ function App() {
       {/* ============================= */}
 
       {actionMessage && (
-
         <p className="action-message">
           {actionMessage}
         </p>
-
       )}
 
     </div>
