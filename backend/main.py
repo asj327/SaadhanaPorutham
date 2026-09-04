@@ -241,140 +241,11 @@ def get_objects():
 def check_compatibility(object1_id: str, object2_id: str):
 
     try:
-        # Get both objects from Firestore
-        object1_doc = db.collection("objects").document(object1_id).get()
-        object2_doc = db.collection("objects").document(object2_id).get()
+        # -----------------------------------------
+        # GET BOTH OBJECTS FROM FIRESTORE
+        # -----------------------------------------
 
-        if not object1_doc.exists or not object2_doc.exists:
-            return {
-                "status": "error",
-                "message": "One or both objects were not found."
-            }
-
-        object1 = object1_doc.to_dict()
-        object2 = object2_doc.to_dict()
-
-        # Ask Groq to analyze compatibility
-        prompt = f"""
-You are the compatibility expert for saadhanaPorutham,
-a funny dating app where everyday objects date each other.
-
-Analyze these two object profiles:
-
-OBJECT 1:
-Name: {object1.get("name")}
-Type: {object1.get("type")}
-Bio: {object1.get("bio")}
-Personality: {object1.get("personality")}
-Attachment Style: {object1.get("attachment_style")}
-Love Language: {object1.get("love_language")}
-Turn Ons: {object1.get("turn_ons")}
-Turn Offs: {object1.get("turn_offs")}
-Green Flags: {object1.get("green_flags")}
-Red Flags: {object1.get("red_flags")}
-
-OBJECT 2:
-Name: {object2.get("name")}
-Type: {object2.get("type")}
-Bio: {object2.get("bio")}
-Personality: {object2.get("personality")}
-Attachment Style: {object2.get("attachment_style")}
-Love Language: {object2.get("love_language")}
-Turn Ons: {object2.get("turn_ons")}
-Turn Offs: {object2.get("turn_offs")}
-Green Flags: {object2.get("green_flags")}
-Red Flags: {object2.get("red_flags")}
-
-Determine how compatible these two objects would be.
-
-Consider:
-- Their purpose
-- Physical characteristics
-- Personality
-- Habits
-- Strengths
-- Weaknesses
-- Funny object-specific interactions
-
-Return ONLY valid JSON.
-
-Use exactly these fields:
-
-{{
-    "compatibility_score": 85,
-    "verdict": "short funny verdict",
-    "chemistry": "short explanation of their chemistry",
-    "strengths": "what makes them work together",
-    "conflicts": "what could go wrong",
-    "perfect_date": "a funny date idea for these objects"
-}}
-
-Rules:
-- compatibility_score must be an integer from 0 to 100
-- Be creative and object-specific
-- Do not give generic human relationship advice
-- Keep every answer concise
-- No markdown
-- No emojis
-- No extra fields
-"""
-
-        response = groq_client.chat.completions.create(
-            model="openai/gpt-oss-20b",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You analyze compatibility between everyday objects in a funny dating app."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.6,
-            max_tokens=500
-        )
-
-        import json
-
-        result_text = response.choices[0].message.content.strip()
-
-        # Remove markdown if Groq adds it
-        if result_text.startswith("```json"):
-            result_text = result_text[7:]
-
-        if result_text.startswith("```"):
-            result_text = result_text[3:]
-
-        if result_text.endswith("```"):
-            result_text = result_text[:-3]
-
-        result_text = result_text.strip()
-
-        result = json.loads(result_text)
-
-        return {
-            "status": "success",
-            "compatibility": result
-        }
-
-    except Exception as e:
-
-        print("COMPATIBILITY ERROR:", repr(e))
-
-        return {
-            "status": "error",
-            "message": str(e)
-        }
-
-@app.post("/objects/compatibility")
-def check_compatibility(object1_id: str, object2_id: str):
-
-    try:
-        # Get first object
         doc1 = db.collection("objects").document(object1_id).get()
-
-        # Get second object
         doc2 = db.collection("objects").document(object2_id).get()
 
         if not doc1.exists or not doc2.exists:
@@ -386,110 +257,404 @@ def check_compatibility(object1_id: str, object2_id: str):
         object1 = doc1.to_dict()
         object2 = doc2.to_dict()
 
-        prompt = f"""
-Compare these two everyday objects as dating partners.
+        # -----------------------------------------
+        # HELPER FUNCTIONS
+        # -----------------------------------------
 
-OBJECT 1
-Name: {object1.get("name")}
-Type: {object1.get("type")}
-Personality: {object1.get("personality")}
-Bio: {object1.get("bio")}
+        def keyword_score(text1, text2, keywords):
+            text1 = str(text1 or "").lower()
+            text2 = str(text2 or "").lower()
 
-OBJECT 2
-Name: {object2.get("name")}
-Type: {object2.get("type")}
-Personality: {object2.get("personality")}
-Bio: {object2.get("bio")}
+            matches = 0
 
-Give a funny compatibility analysis.
+            for word in keywords:
+                if word in text1 and word in text2:
+                    matches += 1
 
-IMPORTANT:
-Return exactly 6 lines.
-Do not use JSON.
-Do not use markdown.
-Do not use emojis.
+            return min(10, 4 + matches)
 
-FORMAT:
+        # -----------------------------------------
+        # 1. DINA PORUTHAM
+        # Daily-life compatibility
+        # -----------------------------------------
 
-SCORE: number from 0 to 100
-VERDICT: one short sentence
-CHEMISTRY: one short sentence
-STRENGTHS: one short sentence
-CONFLICTS: one short sentence
-DATE: one short sentence
-
-Keep every line short.
-"""
-
-        response = groq_client.chat.completions.create(
-            model="openai/gpt-oss-20b",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a funny compatibility analyst for everyday objects."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.3,
-            max_tokens=200
+        dina = keyword_score(
+            object1.get("bio"),
+            object2.get("bio"),
+            [
+                "daily",
+                "useful",
+                "food",
+                "work",
+                "help",
+                "clean",
+                "carry",
+                "hold",
+                "store"
+            ]
         )
 
-        text = response.choices[0].message.content.strip()
+        # -----------------------------------------
+        # 2. GANA PORUTHAM
+        # Personality compatibility
+        # -----------------------------------------
 
-        print("\n===== GROQ COMPATIBILITY RESPONSE =====")
-        print(text)
-        print("========================================\n")
+        gana = keyword_score(
+            object1.get("personality"),
+            object2.get("personality"),
+            [
+                "calm",
+                "funny",
+                "friendly",
+                "reliable",
+                "practical",
+                "organized",
+                "playful",
+                "loyal",
+                "patient",
+                "dependable"
+            ]
+        )
 
-        # Default values
-        score = 50
-        verdict = "They might actually work."
-        chemistry = "Their chemistry is surprisingly interesting."
-        strengths = "They complement each other."
-        conflicts = "They may have some unusual disagreements."
-        perfect_date = "A quiet evening doing what they do best."
+        # -----------------------------------------
+        # 3. MAHENDRA PORUTHAM
+        # Support / usefulness
+        # -----------------------------------------
 
-        # Read response line by line
-        lines = text.splitlines()
+        mahendra = keyword_score(
+            object1.get("green_flags"),
+            object2.get("green_flags"),
+            [
+                "helpful",
+                "reliable",
+                "strong",
+                "durable",
+                "useful",
+                "clean",
+                "protect",
+                "support",
+                "dependable"
+            ]
+        )
 
-        for line in lines:
+        # -----------------------------------------
+        # 4. STHREE DEERGHA
+        # Long-term compatibility
+        # -----------------------------------------
 
-            line = line.strip()
+        sthree_deergha = keyword_score(
+            object1.get("attachment_style"),
+            object2.get("attachment_style"),
+            [
+                "commitment",
+                "secure",
+                "loyal",
+                "stable",
+                "dependable",
+                "consistent",
+                "long",
+                "reliable"
+            ]
+        )
 
-            if line.startswith("SCORE:"):
-                try:
-                    score = int(line.replace("SCORE:", "").strip())
-                except:
-                    score = 50
+        # -----------------------------------------
+        # 5. YONI PORUTHAM
+        # Physical interaction
+        # -----------------------------------------
 
-            elif line.startswith("VERDICT:"):
-                verdict = line.replace("VERDICT:", "").strip()
+        type1 = str(object1.get("type", "")).lower()
+        type2 = str(object2.get("type", "")).lower()
 
-            elif line.startswith("CHEMISTRY:"):
-                chemistry = line.replace("CHEMISTRY:", "").strip()
+        yoni = 5
 
-            elif line.startswith("STRENGTHS:"):
-                strengths = line.replace("STRENGTHS:", "").strip()
+        compatible_pairs = [
+            ("utensil", "kitchen"),
+            ("utensil", "food"),
+            ("cup", "drink"),
+            ("bottle", "drink"),
+            ("phone", "charger"),
+            ("laptop", "charger"),
+            ("laptop", "mouse"),
+            ("chair", "desk"),
+            ("backpack", "laptop"),
+            ("notebook", "pen")
+        ]
 
-            elif line.startswith("CONFLICTS:"):
-                conflicts = line.replace("CONFLICTS:", "").strip()
+        for a, b in compatible_pairs:
 
-            elif line.startswith("DATE:"):
-                perfect_date = line.replace("DATE:", "").strip()
+            if (
+                (a in type1 and b in type2)
+                or
+                (b in type1 and a in type2)
+            ):
+                yoni = 9
 
-        # Keep score between 0 and 100
-        score = max(0, min(100, score))
+        # -----------------------------------------
+        # 6. RASHI PORUTHAM
+        # Category compatibility
+        # -----------------------------------------
+
+        if type1 == type2:
+            rashi = 8
+
+        elif (
+            ("kitchen" in type1 and "kitchen" in type2)
+            or
+            ("electronic" in type1 and "electronic" in type2)
+            or
+            ("stationery" in type1 and "stationery" in type2)
+        ):
+            rashi = 9
+
+        else:
+            rashi = 6
+
+        # -----------------------------------------
+        # 7. RASYADHIPATHI
+        # Dominant personality compatibility
+        # -----------------------------------------
+
+        rasyadhipathi = keyword_score(
+            object1.get("personality"),
+            object2.get("personality"),
+            [
+                "strong",
+                "sharp",
+                "calm",
+                "smart",
+                "practical",
+                "creative",
+                "reliable",
+                "friendly",
+                "bold",
+                "patient"
+            ]
+        )
+
+        # -----------------------------------------
+        # 8. VASYA PORUTHAM
+        # Mutual influence
+        # -----------------------------------------
+
+        vasya = keyword_score(
+            object1.get("love_language"),
+            object2.get("love_language"),
+            [
+                "touch",
+                "service",
+                "attention",
+                "support",
+                "help",
+                "quality",
+                "time",
+                "care",
+                "useful"
+            ]
+        )
+
+        # -----------------------------------------
+        # 9. RAJJU PORUTHAM
+        # Stability / durability
+        # -----------------------------------------
+
+        rajju = keyword_score(
+            object1.get("green_flags"),
+            object2.get("green_flags"),
+            [
+                "durable",
+                "strong",
+                "sturdy",
+                "stable",
+                "reliable",
+                "clean",
+                "polished",
+                "long-lasting",
+                "dependable"
+            ]
+        )
+
+        # -----------------------------------------
+        # 10. VEDHA PORUTHAM
+        # Conflict / friction
+        # -----------------------------------------
+
+        conflict_score = keyword_score(
+            object1.get("turn_offs"),
+            object2.get("turn_offs"),
+            [
+                "dirty",
+                "broken",
+                "messy",
+                "scratch",
+                "rust",
+                "heat",
+                "water",
+                "noise",
+                "pressure",
+                "damage"
+            ]
+        )
+
+        # Higher conflict = lower Vedha
+        vedha = max(0, 10 - conflict_score)
+
+        # -----------------------------------------
+        # TOTAL
+        # -----------------------------------------
+
+        total = (
+            dina +
+            gana +
+            mahendra +
+            sthree_deergha +
+            yoni +
+            rashi +
+            rasyadhipathi +
+            vasya +
+            rajju +
+            vedha
+        )
+
+        total = max(0, min(100, total))
+
+        # -----------------------------------------
+        # VERDICT
+        # -----------------------------------------
+
+        if total >= 90:
+            verdict = "Exceptional Porutham"
+
+        elif total >= 80:
+            verdict = "Excellent Porutham"
+
+        elif total >= 70:
+            verdict = "Good Porutham"
+
+        elif total >= 60:
+            verdict = "Moderate Porutham"
+
+        elif total >= 40:
+            verdict = "Challenging Porutham"
+
+        else:
+            verdict = "Porutham Not Found"
+
+        # -----------------------------------------
+        # FUNNY MARRIAGE PREDICTION
+        # -----------------------------------------
+
+        marriage_prediction = (
+            f"{object1.get('name')} and {object2.get('name')} "
+            f"have a {total}% chance of surviving everyday object drama."
+        )
+
+        # -----------------------------------------
+        # EXPLANATIONS
+        # -----------------------------------------
+
+        poruthams = {
+
+            "dina": {
+                "score": dina,
+                "explanation":
+                    f"{object1.get('name')} and {object2.get('name')} "
+                    "fit surprisingly well into daily life."
+            },
+
+            "gana": {
+                "score": gana,
+                "explanation":
+                    "Their personalities seem unusually compatible."
+            },
+
+            "mahendra": {
+                "score": mahendra,
+                "explanation":
+                    "They actually make each other's jobs easier."
+            },
+
+            "sthree_deergha": {
+                "score": sthree_deergha,
+                "explanation":
+                    "Their relationship has decent long-term potential."
+            },
+
+            "yoni": {
+                "score": yoni,
+                "explanation":
+                    "Their physical purposes appear naturally compatible."
+            },
+
+            "rashi": {
+                "score": rashi,
+                "explanation":
+                    "Their object categories have good cosmic chemistry."
+            },
+
+            "rasyadhipathi": {
+                "score": rasyadhipathi,
+                "explanation":
+                    "Their dominant traits seem to cooperate nicely."
+            },
+
+            "vasya": {
+                "score": vasya,
+                "explanation":
+                    "They appear capable of influencing each other positively."
+            },
+
+            "rajju": {
+                "score": rajju,
+                "explanation":
+                    "The relationship appears reasonably stable and durable."
+            },
+
+            "vedha": {
+                "score": vedha,
+                "explanation":
+                    "Their biggest conflicts are surprisingly manageable."
+            }
+        }
+
+        # -----------------------------------------
+        # FINAL COMPATIBILITY OBJECT
+        # -----------------------------------------
 
         compatibility = {
-            "compatibility_score": score,
+
+            "object1": {
+                "id": object1_id,
+                "name": object1.get("name"),
+                "type": object1.get("type")
+            },
+
+            "object2": {
+                "id": object2_id,
+                "name": object2.get("name"),
+                "type": object2.get("type")
+            },
+
+            "poruthams": poruthams,
+
+            "total_score": total,
+
             "verdict": verdict,
-            "chemistry": chemistry,
-            "strengths": strengths,
-            "conflicts": conflicts,
-            "perfect_date": perfect_date
+
+            "marriage_prediction": marriage_prediction
         }
+
+        # -----------------------------------------
+        # SAVE RESULT TO FIRESTORE
+        # -----------------------------------------
+
+        db.collection("compatibility").add({
+            **compatibility,
+            "created_at": datetime.now().isoformat()
+        })
+
+        print("\n===== JATHAKAM RESULT =====")
+        print(compatibility)
+        print("============================\n")
 
         return {
             "status": "success",
@@ -498,7 +663,7 @@ Keep every line short.
 
     except Exception as e:
 
-        print("COMPATIBILITY ERROR:", repr(e))
+        print("JATHAKAM ERROR:", repr(e))
 
         return {
             "status": "error",
